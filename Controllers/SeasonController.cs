@@ -38,22 +38,65 @@ public class SeasonController : ControllerBase
             {
                 return Conflict("El ID ya existe.");
             }
-            
-            bool nameExists = seasons.Any(S => S.Name == newSeason.Name);
 
-            if (String.IsNullOrWhiteSpace(newSeason.Name))
+            if (string.IsNullOrWhiteSpace(newSeason.Name))
             {
                 return BadRequest("Registre el nombre de la estacion.");
             }
 
-            if (nameExists)
-            {
-                return Conflict("La estacion que intentas ingresar ya existe.");
-            }
-
+            seasons.Add(newSeason);
             return Ok("Estacion registrada correctamente.");
         }
-        catch(Exception ex)
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Ha ocurrido un error en el servidor {ex.Message}");
+        }
+    }
+
+    [HttpGet("{id}/measurings")]
+    public IActionResult GetMeasuringsBySeason(int id)
+    {
+        try
+        {
+            Season seasonExists = seasons.FirstOrDefault(S => S.Id == id);
+
+            if (seasonExists is null)
+            {
+                return NotFound("La estacion con el id ingresado no existe.");
+            }
+
+            var measurings = Season.SeasonMeasurings.Where(m => m.SeasonId == id)
+                                                    .ToList();
+
+            return Ok(measurings);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Ha ocurrido un error en el servidor {ex.Message}");
+        }
+    }
+
+    [HttpGet("Place")]
+    public IActionResult GetByPlace(string place)
+    {
+        try
+        {
+            if (seasons.Count == 0)
+            {
+                return NotFound("No se encuentran estaciones registradas.");
+            }
+
+            var seasonPlace = seasons.Where(S => S.Place == place)
+                                    .ToList();
+
+            if (seasonPlace is null)
+            {
+                return NotFound("No se encuentran estaciones registradas en esa localidad.");
+            }
+            
+            return Ok(seasonPlace);
+        }
+        catch (Exception ex)
         {
             return StatusCode(500, $"Ha ocurrido un error en el servidor {ex.Message}");
         }
