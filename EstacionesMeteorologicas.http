@@ -1,0 +1,6 @@
+@EstacionesMeteorologicas_HostAddress = http://localhost:5065
+
+GET {{EstacionesMeteorologicas_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
