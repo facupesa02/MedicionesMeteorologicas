@@ -8,18 +8,8 @@ public class MeasuringController : ControllerBase
 {
     private readonly ILogger<MeasuringController> _logger;
 
-    private static readonly List<Measuring> measurings = new()
-    {
-        new Measuring
-        {
-            Id = 1,
-            SeasonId = 1,
-            Temperature = 34,
-            Dampness = 30,
-            WindSpeed = 20,
-            DateTime = new DateTime(2026, 08, 24, 12, 00, 00)
-        }
-    };
+    private static IEnumerable<Measuring> Measurings =>
+        SeasonController.seasons.SelectMany(season => season.SeasonMeasurings);
     public MeasuringController(ILogger<MeasuringController> logger)
     {
         _logger = logger;
@@ -35,7 +25,7 @@ public class MeasuringController : ControllerBase
                 return BadRequest("Ingresa un id valido.");
             }
 
-            bool idExists = measurings.Any(S => S.Id == newMeasuring.Id);
+            bool idExists = Measurings.Any(measuring => measuring.Id == newMeasuring.Id);
 
             if (idExists)
             {
@@ -47,16 +37,13 @@ public class MeasuringController : ControllerBase
                 return BadRequest("Ingresa un id valido.");
             }
 
-            bool seasonIdExists = SeasonController.seasons.Any(S => S.Id == newMeasuring.SeasonId);
-
-            if (seasonIdExists == false)
+            var season = SeasonController.seasons.FirstOrDefault(S => S.Id == newMeasuring.SeasonId);
+            if (season is null)
             {
                 return NotFound("La estacion con el id ingresado no existe.");
             }
 
-            var statusValidation = SeasonController.seasons.FirstOrDefault(S => S.Id == newMeasuring.SeasonId);
-
-            if (statusValidation.Status == false)
+            if (season.Status == false)
             {
                 return Conflict("La estacion se encuentra inactiva.");
             }
@@ -76,8 +63,7 @@ public class MeasuringController : ControllerBase
                 return BadRequest("La humedad debe estar entre 0 y 100.");
             }
 
-            measurings.Add(newMeasuring);
-            Season.SeasonMeasurings.Add(newMeasuring);
+            season.SeasonMeasurings.Add(newMeasuring);
 
             return Ok("Medicion tomada exitosamente.");
 
@@ -93,6 +79,7 @@ public class MeasuringController : ControllerBase
     {
         try
         {
+            var measurings = Measurings.ToList();
             if (measurings.Count == 0)
             {
                 return NotFound("No hay mediciones registradas aun.");
@@ -111,6 +98,7 @@ public class MeasuringController : ControllerBase
     {
         try
         {
+            var measurings = Measurings.ToList();
             if(measurings.Count == 0)
             {
                 return NotFound("No hay mediciones registradas aun.");
@@ -119,7 +107,7 @@ public class MeasuringController : ControllerBase
             var temperatures = measurings.Where(M => M.Temperature >= temperature)
                                         .ToList();
             
-            if (temperatures is null)
+            if (temperatures.Count == 0)
             {
                 return NotFound($"No se registraron temperaturas mayores a {temperature} grados."); 
             }
@@ -127,6 +115,86 @@ public class MeasuringController : ControllerBase
             return Ok(temperatures);
         }
         catch(Exception ex)
+        {
+            return StatusCode(500, $"Ha ocurrido un error en el servidor {ex.Message}");
+        }
+    }
+
+    [HttpGet("Order")]
+    public IActionResult GetByOrder()
+    {
+        try
+        {
+            var Order = Measurings.OrderByDescending(M => M.Temperature).ToList();
+
+            if(Order.Count == 0)
+            {
+                return NotFound("No hay mediciones registradas aun.");
+            }
+
+            return Ok(Order);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Ha ocurrido un error en el servidor {ex.Message}");
+        }
+    }
+
+    [HttpGet("Promedio")]
+    public IActionResult GetAvg()
+    {
+        try
+        {
+            var average = Measurings.Average(A => A.Temperature);
+
+            if(average == 0)
+            {
+                return NotFound("No hay tempearturas registradas aun.");
+            }
+
+            return Ok(average);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Ha ocurrido un error en el servidor {ex.Message}");
+        }
+    }
+
+    [HttpGet("MaximaTemp")]
+    public IActionResult GetMax()
+    {
+        try
+        {
+            var maxTemp = Measurings.Max(M => M.Temperature);
+
+            if (maxTemp == 0)
+            {
+                return NotFound("No hay tempearturas registradas aun.");
+            }
+
+            return Ok(maxTemp);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Ha ocurrido un error en el servidor {ex.Message}");
+        }
+    }
+
+    [HttpGet("MinimaTemp")]
+    public IActionResult GetMin()
+    {
+        try
+        {
+            var minTemp = Measurings.Min(M => M.Temperature);
+
+            if (minTemp == 0)
+            {
+                return NotFound("No hay tempearturas registradas aun.");
+            }
+
+            return Ok(minTemp);
+        }
+        catch (Exception ex)
         {
             return StatusCode(500, $"Ha ocurrido un error en el servidor {ex.Message}");
         }

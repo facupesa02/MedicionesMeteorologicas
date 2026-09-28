@@ -14,7 +14,19 @@ public class SeasonController : ControllerBase
             Id = 1,
             Name = "Invierno",
             Place = "Cordoba",
-            Status = true    
+            Status = true,
+            SeasonMeasurings =
+            {
+                new Measuring
+                {
+                    Id = 1,
+                    SeasonId = 1,
+                    Temperature = 34,
+                    Dampness = 30,
+                    WindSpeed = 20,
+                    DateTime = new DateTime(2026, 08, 24, 12, 00, 00)
+                }
+            }
         }
     }; 
     public SeasonController(ILogger<SeasonController> logger)
@@ -58,17 +70,14 @@ public class SeasonController : ControllerBase
     {
         try
         {
-            Season seasonExists = seasons.FirstOrDefault(S => S.Id == id);
+            var season = seasons.FirstOrDefault(S => S.Id == id);
 
-            if (seasonExists is null)
+            if (season is null)
             {
                 return NotFound("La estacion con el id ingresado no existe.");
             }
 
-            var measurings = Season.SeasonMeasurings.Where(m => m.SeasonId == id)
-                                                    .ToList();
-
-            return Ok(measurings);
+            return Ok(season.SeasonMeasurings);
         }
         catch (Exception ex)
         {
@@ -89,7 +98,7 @@ public class SeasonController : ControllerBase
             var seasonPlace = seasons.Where(S => S.Place == place)
                                     .ToList();
 
-            if (seasonPlace is null)
+            if (seasonPlace.Count == 0)
             {
                 return NotFound("No se encuentran estaciones registradas en esa localidad.");
             }
@@ -100,5 +109,18 @@ public class SeasonController : ControllerBase
         {
             return StatusCode(500, $"Ha ocurrido un error en el servidor {ex.Message}");
         }
+    }
+
+    [HttpGet("Mediciones/Estacion")]
+    public IActionResult GetMeasuringsBySeason()
+    {
+        var measurings = seasons.Select(S => S.SeasonMeasurings).ToList();
+
+        if (measurings.Count == 0)
+        {
+            return NotFound("No hay mediciones registradas aun.");
+        }
+
+        return Ok(measurings);
     }
 }
